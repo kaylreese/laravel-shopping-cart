@@ -349,6 +349,26 @@ class Cart
         return $this->numberFormat($this->totalFloat(), $decimals, $decimalPoint, $thousandSeperator);
     }
 
+
+    /**
+     * Calcular el total de los artículos en el carrito, sumando también el total de impuestos.
+     *
+     * @return float
+     */
+    public function total2($decimalPoint = null, $thousandSeperator = null)
+    {
+        // Obtener el subtotal sin impuestos (solo el precio de los productos)
+        $subtotal = $this->subtotal();  // Puedes usar la función subtotal() que ya hemos ajustado
+
+        // Obtener el monto total de los impuestos calculados
+        $totalTax = $this->tax2($decimalPoint, $thousandSeperator);  
+
+        $total = $subtotal + $totalTax;
+
+        return number_format($total, 2, $decimalPoint, $thousandSeperator);
+    }
+
+
     /**
      * Get the total tax of the items in the cart.
      *
@@ -374,6 +394,25 @@ class Cart
     {
         return $this->numberFormat($this->taxFloat(), $decimals, $decimalPoint, $thousandSeperator);
     }
+
+
+    /**
+     * Calculate, Sum and format the total custom tax amount for all items in the cart.
+     *
+     * @param string|null $decimalPoint
+     * @param string|null $thousandSeperator
+     * @return string
+     */
+    public function tax2($decimalPoint = null, $thousandSeperator = null)
+    {
+        // Sumar todos los impuestos de los artículos en el carrito
+        $totalTaxAmount = $this->content()->sum(function ($item) {
+            return $item->options->tax_amount * $item->qty;
+        });
+
+        return number_format($totalTaxAmount, 2, $decimalPoint, $thousandSeperator);
+    }
+
 
     /**
      * Get the subtotal (total - tax) of the items in the cart.
@@ -560,6 +599,30 @@ class Cart
 
         $content->put($cartItem->rowId, $cartItem);
 
+        $this->session->put($this->instance, $content);
+    }
+
+    
+    /**
+     * Set a custom tax amount for a cart item.
+     *
+     * @param string $rowId
+     * @param float $customTaxAmount
+     * @return void
+     */
+    public function setTax2($rowId, $customTaxAmount)
+    {
+        // Obtener el elemento del carrito por su ID
+        $cartItem = $this->get($rowId);
+
+        // Establecer el monto de impuesto personalizado en las opciones
+        $cartItem->options->put('custom_tax', $customTaxAmount);
+
+        // Actualizar el contenido del carrito
+        $content = $this->getContent();
+        $content->put($cartItem->rowId, $cartItem);
+
+        // Guardar los cambios en la sesión
         $this->session->put($this->instance, $content);
     }
 
